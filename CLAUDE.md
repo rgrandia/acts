@@ -130,8 +130,17 @@ Regles que fan complir triggers (no l'app):
 
 ## 6. Autenticació
 
-Codi d'un sol ús per correu (OTP de Supabase). Sense contrasenyes ni
-registre obert:
+Correu d'accés de Supabase (OTP), sense contrasenyes ni registre obert. El
+correu serveix de dues maneres:
+
+- **Enllaç**: porta a `/auth/callback?code=…` (flux PKCE) i s'ha d'obrir
+  al mateix navegador on s'ha demanat. Funciona amb les plantilles per
+  defecte de Supabase. Si la URL de retorn no és a la llista permesa,
+  Supabase torna a la Site URL i el proxy hi recull el `code`.
+- **Codi**: s'escriu a la pantalla d'entrada. Cal `{{ .Token }}` a les
+  plantilles; és el que fa servir qui obre el correu en un altre aparell.
+
+A més:
 
 - El hook **Before User Created** (`public.hook_abans_crear_usuari`) només
   deixa crear comptes als correus amb una invitació pendent.
@@ -140,8 +149,9 @@ registre obert:
   després d'aplicar la migració i abans de publicar l'URL.
 - L'app no envia correus d'invitació: qui convida avisa la persona.
 
-Configuració necessària a Supabase (vegeu `README.md`): activar el hook,
-posar `{{ .Token }}` a les plantilles de correu i un SMTP propi. L'SMTP
+Configuració a Supabase (vegeu `README.md`): Site URL = URL de l'app,
+activar el hook, `{{ .Token }}` a les plantilles (opcional però
+recomanat) i un SMTP propi. L'SMTP
 per defecte de Supabase envia molt pocs correus per hora: n'hi ha prou per
 provar-ho, però no per a un esdeveniment real.
 
@@ -162,7 +172,8 @@ de tocar res més.
 - `npm run test:i18n`.
 - `npm run test:seating` — geometria, ordre de protocol, CSV.
 - `e2e/flux.mjs` — navegador real contra `scripts/e2e/entorn.sh`
-  (Postgres + GoTrue + PostgREST + SMTP de joguina). Cobreix l'OTP, el hook,
+  (Postgres + GoTrue + PostgREST + SMTP de joguina). Cobreix el codi i
+  l'enllaç del correu, el hook,
   l'arrencada del propietari, invitar, assignar, marcar feta, comentar i
   canviar d'idioma.
 - `e2e/seating.mjs` (després de `flux.mjs`) — crear plànol, assignació per

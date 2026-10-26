@@ -6,7 +6,8 @@ import { SelectorIdiomaLogin } from "@/components/SelectorIdiomaLogin";
 
 export const dynamic = "force-dynamic";
 
-export default async function Login() {
+export default async function Login({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const { error } = await searchParams;
   const sessio = await obteSessio();
   if (sessio?.perfil) redirect("/");
   const { t, idioma } = await tradueix();
@@ -19,7 +20,7 @@ export default async function Login() {
           <div className="suau petit">{t.app.lema}</div>
         </div>
         <h1 className="text-lg font-semibold">{t.login.titol}</h1>
-        <FormulariLogin t={t.login} />
+        <FormulariLogin t={t.login} errorInicial={error === "enllac" ? t.login.errEnllac : undefined} />
         <SelectorIdiomaLogin actual={idioma} />
       </div>
     </main>

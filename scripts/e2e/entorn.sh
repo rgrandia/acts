@@ -90,7 +90,7 @@ nohup node scripts/e2e/correu.mjs > "$DIR/correu.log" 2>&1 < /dev/null &
   export GOTRUE_SMTP_HOST=127.0.0.1 GOTRUE_SMTP_PORT=2525 GOTRUE_SMTP_USER=prova GOTRUE_SMTP_PASS=prova
   export GOTRUE_SMTP_ADMIN_EMAIL=acts@prova.test GOTRUE_MAILER_OTP_EXP=600
   export GOTRUE_RATE_LIMIT_EMAIL_SENT=1000 GOTRUE_SMTP_MAX_FREQUENCY=1s
-  export GOTRUE_LOG_LEVEL=warn
+  export GOTRUE_URI_ALLOW_LIST="http://127.0.0.1:3000/**" GOTRUE_LOG_LEVEL=warn
   export GOTRUE_HOOK_BEFORE_USER_CREATED_ENABLED=true
   export GOTRUE_HOOK_BEFORE_USER_CREATED_URI=pg-functions://postgres/public/hook_abans_crear_usuari
   nohup ./auth > auth.log 2>&1 < /dev/null &

@@ -30,6 +30,16 @@ export async function actualitzaSessio(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const autenticat = Boolean(data?.claims?.sub);
   const ruta = request.nextUrl.pathname;
+
+  // Si la URL de retorn no és a la llista permesa de Supabase, l'enllaç del
+  // correu acaba a la Site URL amb ?code=…: l'enviem on toca.
+  const codi = request.nextUrl.searchParams.get("code");
+  if (codi && ruta !== "/auth/callback") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/callback";
+    url.search = `?code=${encodeURIComponent(codi)}`;
+    return NextResponse.redirect(url);
+  }
   const publica = RUTES_PUBLIQUES.some((r) => ruta === r || ruta.startsWith(r + "/"));
 
   if (!autenticat && !publica) {
