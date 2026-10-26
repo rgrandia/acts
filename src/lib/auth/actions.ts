@@ -1,17 +1,19 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { GALETA_IDIOMA, tradueix } from "@/i18n";
 import { fmt } from "@/i18n/format";
+import { recordaIdioma } from "./idioma";
 
 export type EstatLogin = { pas: "correu" | "codi"; email?: string; error?: string };
 
-// Pas 1: demana un codi d'un sol ús. Si el correu no té compte, Supabase el
+// Pas 1: demana un correu d'accés. Si el correu no té compte, Supabase el
 // crea, però el hook "before user created" (migració 0001) ho rebutja si no
 // hi ha cap invitació: no hi ha registre obert.
-// Pas 2: verifica el codi i obre la sessió.
+// Pas 2: o bé s'escriu el codi (si la plantilla de correu el porta), o bé
+// s'obre l'enllaç del correu, que acaba a /auth/callback (vegeu route.ts).
 export async function accioLogin(prev: EstatLogin, fd: FormData): Promise<EstatLogin> {
   const { t } = await tradueix();
   const supabase = await createClient();
@@ -21,7 +23,10 @@ export async function accioLogin(prev: EstatLogin, fd: FormData): Promise<EstatL
   if (fd.get("torna")) return { pas: "correu", email };
 
   if (prev.pas === "correu") {
-    const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: true, emailRedirectTo: `${await origen()}/auth/callback` },
+    });
     if (error) {
       console.error("otp:", error.code, error.status, error.message);
       return { pas: "correu", email, error: missatge(error.code, error.status, t) };
@@ -35,10 +40,18 @@ export async function accioLogin(prev: EstatLogin, fd: FormData): Promise<EstatL
     return { pas: "codi", email, error: error ? missatge(error.code, error.status, t, true) : t.login.errCodi };
   }
 
-  // L'idioma del perfil passa a la galeta perquè el login el recordi.
-  const { data: perfil } = await supabase.from("perfils").select("idioma").eq("id", data.user.id).maybeSingle();
-  if (perfil?.idioma) (await cookies()).set(GALETA_IDIOMA, perfil.idioma, { path: "/", maxAge: 31536000 });
+  await recordaIdioma(data.user.id);
   redirect("/");
+}
+
+// URL pública de l'app tal com l'ha vista el navegador (Vercel posa
+// x-forwarded-host). Supabase només hi redirigeix si és a la llista d'URL
+// permeses; si no, cau a la Site URL i el proxy recull el codi igualment.
+async function origen(): Promise<string> {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https");
+  return `${proto}://${host}`;
 }
 
 function missatge(

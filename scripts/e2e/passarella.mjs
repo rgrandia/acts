@@ -1,7 +1,8 @@
 // Fa de passarel·la com la de Supabase: /auth/v1 → GoTrue, /rest/v1 → PostgREST.
 import http from "node:http";
 
-const rutes = [["/auth/v1", 9999], ["/rest/v1", 3001]];
+// /verify: el GoTrue local fa els enllaços dels correus sense el prefix /auth/v1.
+const rutes = [["/auth/v1", 9999], ["/rest/v1", 3001], ["/verify", 9999, "/verify"]];
 http
   .createServer((req, res) => {
     const r = rutes.find(([p]) => req.url.startsWith(p));
@@ -10,7 +11,7 @@ http
       return res.end();
     }
     const up = http.request(
-      { host: "127.0.0.1", port: r[1], path: req.url.slice(r[0].length) || "/", method: req.method, headers: req.headers },
+      { host: "127.0.0.1", port: r[1], path: (r[2] ?? "") + req.url.slice(r[0].length) || "/", method: req.method, headers: req.headers },
       (u) => {
         res.writeHead(u.statusCode, u.headers);
         u.pipe(res);

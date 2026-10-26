@@ -13,9 +13,12 @@ castellà. Projecte personal. L'especificació és a [`CLAUDE.md`](CLAUDE.md).
 2. **Authentication → Hooks → Before User Created** → Postgres →
    `public.hook_abans_crear_usuari`. Sense això, qualsevol pot crear-se un
    compte (no veuria res, però ocuparia lloc).
-3. **Authentication → Emails → Templates**: a *Confirm signup* i a *Magic
-   Link*, afegeix el codi, p. ex. `<p>Codi: <b>{{ .Token }}</b></p>`. L'app
-   demana el codi; l'enllaç no es fa servir.
+3. **Authentication → URL Configuration**: *Site URL* = l'URL de l'app a
+   Vercel; a *Redirect URLs*, afegeix `https://<la-teva-app>/auth/callback`.
+   Amb això ja es pot entrar amb l'enllaç del correu (al mateix navegador).
+   Recomanat: a *Emails → Templates* (*Confirm signup* i *Magic Link*),
+   afegeix el codi, p. ex. `<p>Codi: <b>{{ .Token }}</b></p>`, per a qui
+   obre el correu en un altre aparell.
 4. **Authentication → Emails → SMTP**: configura un SMTP propi (Resend,
    Brevo...). El de Supabase n'envia massa pocs per a un esdeveniment real.
 5. **Entra tu primer** (vegeu el pas 3 de Vercel): el primer compte de la

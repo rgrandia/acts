@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 
-import { URL, captura, entra } from "./comu.mjs";
+import { URL, captura, enllac, entra, esperaCorreu, nCorreus } from "./comu.mjs";
 
 const navegador = await chromium.launch();
 try {
@@ -89,6 +89,25 @@ try {
   // 9. Qui no és de l'esdeveniment no el veu (404).
   await prop.goto(`${URL}/e/00000000-0000-0000-0000-000000000000`);
   await prop.getByText("404").waitFor();
+
+  // 10. També s'entra amb l'enllaç del correu (sense escriure el codi), al
+  //     mateix navegador on s'ha demanat.
+  {
+    const page = await (await navegador.newContext({ locale: "ca-ES" })).newPage();
+    await page.goto(`${URL}/login`);
+    await page.getByLabel("Correu electrònic").fill("prop@prova.test");
+    const abans = nCorreus("prop@prova.test");
+    await page.getByRole("button", { name: "Envia'm un codi" }).click();
+    await page.getByLabel("Codi del correu").waitFor();
+    await esperaCorreu("prop@prova.test", abans);
+    await page.goto(enllac("prop@prova.test"));
+    await page.waitForURL(`${URL}/`);
+    await page.getByRole("link", { name: "Nou esdeveniment" }).waitFor();
+    // Un enllaç ja fet servir no torna a obrir sessió.
+    const altre = await (await navegador.newContext({ locale: "ca-ES" })).newPage();
+    await altre.goto(`${URL}/auth/callback?code=fals`);
+    await altre.getByText("L'enllaç no és vàlid o ha caducat").waitFor();
+  }
 
   console.log("e2e: tot correcte");
 } finally {

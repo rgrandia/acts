@@ -5,8 +5,8 @@ import { accioLogin, type EstatLogin } from "@/lib/auth/actions";
 import { fmt } from "@/i18n/format";
 import type { Diccionari } from "@/i18n/ca";
 
-export function FormulariLogin({ t }: { t: Diccionari["login"] }) {
-  const [estat, envia, pendent] = useActionState<EstatLogin, FormData>(accioLogin, { pas: "correu" });
+export function FormulariLogin({ t, errorInicial }: { t: Diccionari["login"]; errorInicial?: string }) {
+  const [estat, envia, pendent] = useActionState<EstatLogin, FormData>(accioLogin, { pas: "correu", error: errorInicial });
 
   if (estat.pas === "codi") {
     return (
