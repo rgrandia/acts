@@ -42,8 +42,8 @@ quan toqui cada fase. Això no afecta la seguretat tècnica de la secció 4
 
 1. **Base (fet)**: esdeveniments, equip amb rols, invitacions, àrees,
    tasques amb data/hora límit, comentaris, "les meves tasques", ca/es.
-2. **Seating**: sales i plànols per esdeveniment, a partir del
-   `seating.html`, amb les persones convidades de cada acte.
+2. **Seating (fet)**: plànols per esdeveniment a partir del `seating.html`
+   (secció 5 bis), amb les persones convidades de cada acte.
 3. **Participants i inscripcions** (delegacions, persones, allotjament).
 4. **Programa i acreditació** (agenda per sales, check-in amb QR).
 
@@ -102,6 +102,32 @@ Regles que fan complir triggers (no l'app):
 - Qui no és superusuari només canvia l'estat de la tasca, mai títol, data,
   persona, àrea ni prioritat.
 
+## 5 bis. Seating (migració 0002)
+
+| Taula | Què és |
+|---|---|
+| `planols` | Un plànol per acte o sala. `dades` és el document de l'antic `seating.html` (v:1: elements, seients, zones i convidats) en jsonb; `versio` puja a cada canvi de contingut. |
+| `planols_historial` | Còpia anterior en desar, com a molt una cada 15 minuts. Append-only. |
+| `arribades` | Qui ha arribat el dia de l'acte, per persona del plànol. Fora del document perquè la marquen diverses persones alhora. |
+
+- **Lògica** a `src/lib/seating/` (geometria, ordre de protocol, CSV),
+  portada de l'original sense canviar-ne el comportament, amb proves
+  (`npm run test:seating`). Si es toca l'ordre de protocol, primer la prova.
+  Regla: la dreta de qui presideix és l'esquerra del públic.
+- **Editor** a `src/components/seating/`. El document viu en un `Magatzem`
+  fora de React i només es modifica amb `muta()`, que apunta l'estat per
+  desfer i programa el desat automàtic (1,5 s).
+- **Concurrència**: `desa_planol(id, dades, versio)` només desa si ningú no
+  ho ha fet des d'aquella versió; si no, l'editor avisa i ofereix baixar els
+  canvis propis i carregar la versió nova. Mai no es trepitja en silenci.
+- **Permisos**: superusuari → muntatge, assignació i acte; usuari → només
+  mode acte (consultar i marcar arribades). En mode acte les arribades es
+  tornen a llegir cada 10 s.
+- Importa els `.json` de l'eina antiga (botó d'importar) i exporta PNG,
+  plànol imprès, etiquetes, llista de porta, CSV i JSON.
+- Les zones per defecte neixen en l'idioma de qui crea el plànol; després
+  són dades editables, no textos de la interfície.
+
 ## 6. Autenticació
 
 Codi d'un sol ús per correu (OTP de Supabase). Sense contrasenyes ni
@@ -134,10 +160,14 @@ de tocar res més.
 - `npm run test:sql` — migracions en un Postgres buit + `supabase/tests/verificacio.sql`
   (permisos de cada rol, hook, invitacions, últim superusuari, cap delete).
 - `npm run test:i18n`.
+- `npm run test:seating` — geometria, ordre de protocol, CSV.
 - `e2e/flux.mjs` — navegador real contra `scripts/e2e/entorn.sh`
   (Postgres + GoTrue + PostgREST + SMTP de joguina). Cobreix l'OTP, el hook,
   l'arrencada del propietari, invitar, assignar, marcar feta, comentar i
   canviar d'idioma.
+- `e2e/seating.mjs` (després de `flux.mjs`) — crear plànol, assignació per
+  protocol, desat i persistència, arribades des del mòbil (en castellà) i
+  conflicte entre dues pestanyes.
 
 Qui afegeixi un permís nou, l'afegeix a `verificacio.sql`.
 
