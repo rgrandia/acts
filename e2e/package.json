@@ -4,7 +4,8 @@
   "type": "module",
   "description": "Proves de punta a punta (Playwright). Separades de l'app perquè Vercel no les instal·li.",
   "scripts": {
-    "flux": "node flux.mjs"
+    "flux": "node flux.mjs",
+    "seating": "node seating.mjs"
   },
   "dependencies": {
     "playwright": "1.64.1"

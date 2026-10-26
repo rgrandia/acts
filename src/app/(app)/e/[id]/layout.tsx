@@ -47,6 +47,7 @@ export default async function LayoutEsdeveniment({
       <Pestanyes
         items={[
           { href: `/e/${id}`, etiqueta: t.pestanyes.tasques, prefixos: [`/e/${id}/tasques`] },
+          { href: `/e/${id}/planols`, etiqueta: t.seating.pestanya, prefixos: [`/e/${id}/planols/`] },
           { href: `/e/${id}/equip`, etiqueta: t.pestanyes.equip, prefixos: [`/e/${id}/equip/`] },
         ]}
       />

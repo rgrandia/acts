@@ -58,7 +58,7 @@ do \$\$ begin
   if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated nologin; end if;
 end \$\$;
 alter role authenticator password '$PASS';
-alter role supabase_auth_admin password '$PASS';
+alter role supabase_auth_admin login password '$PASS';
 grant anon, authenticated, service_role to authenticator;
 create schema if not exists auth authorization supabase_auth_admin;
 grant usage on schema auth to anon, authenticated, service_role;

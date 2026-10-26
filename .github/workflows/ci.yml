@@ -19,6 +19,8 @@ jobs:
       - run: npm run typecheck
       - name: Català i castellà tenen les mateixes claus
         run: npm run test:i18n
+      - name: Lògica del seating (geometria, protocol, CSV)
+        run: npm run test:seating
       - run: npm run build
         env:
           ACTS_SUPABASE_URL: http://127.0.0.1:54321
@@ -41,7 +43,7 @@ jobs:
       PGPASSWORD: postgres
     steps:
       - uses: actions/checkout@v4
-      - name: Migracions + verificació de permisos (RLS, rols, invitacions)
+      - name: Migracions + verificació de permisos (RLS, rols, invitacions, seating)
         run: scripts/prova-sql.sh
 
   # Punta a punta amb navegador contra un Supabase mínim (Postgres + GoTrue +
@@ -87,6 +89,9 @@ jobs:
           echo "l'app no arrenca" >&2; exit 1
       - name: Flux bàsic (propietària, invitació, tasca, idioma)
         run: node flux.mjs
+        working-directory: e2e
+      - name: Seating (plànol, protocol, desat, arribades, conflicte)
+        run: node seating.mjs
         working-directory: e2e
       - name: Captures i registres
         if: always()

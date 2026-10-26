@@ -186,6 +186,100 @@ do $$ begin
   end;
 end $$;
 
+-- ============================================================
+-- SEATING (migració 0002)
+-- ============================================================
+\o /dev/null
+select pg_temp.com('super');
+\o
+insert into planols (id, esdeveniment_id, nom, dades, creat_per)
+values ('40000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001',
+        'Cerimònia inaugural', '{"v":1,"els":[],"people":[]}', '00000000-0000-0000-0000-00000000000b');
+do $$
+declare v int;
+begin
+  -- Desar amb la versió correcta en dona una de nova i deixa còpia a l'historial.
+  v := desa_planol('40000000-0000-0000-0000-000000000001', '{"v":1,"els":[1],"people":[]}', 1);
+  assert v = 2, 'la versió ha de pujar a 2';
+  assert (select count(*) from planols_historial) = 1, 'ha de quedar una còpia';
+  -- Dins dels 15 minuts, no se''n fa cap més.
+  v := desa_planol('40000000-0000-0000-0000-000000000001', '{"v":1,"els":[1,2],"people":[]}', 2);
+  assert v = 3;
+  assert (select count(*) from planols_historial) = 1, 'com a molt una còpia cada 15 minuts';
+  -- Amb una versió antiga, conflicte.
+  begin
+    perform desa_planol('40000000-0000-0000-0000-000000000001', '{"v":1}', 1);
+    raise exception 'hauria de donar conflicte';
+  exception when raise_exception then
+    if sqlerrm not like 'Algú altre ha desat%' then raise; end if;
+  end;
+  -- Canviar el nom no és un canvi de contingut.
+  update planols set nom = 'Inauguració' where id = '40000000-0000-0000-0000-000000000001';
+  assert (select versio from planols where id = '40000000-0000-0000-0000-000000000001') = 3;
+  -- Les dades han de ser un objecte.
+  begin
+    perform desa_planol('40000000-0000-0000-0000-000000000001', '[1,2]', 3);
+    raise exception 'un array no hauria de passar';
+  exception when check_violation then null;
+  end;
+end $$;
+
+-- La voluntària veu el plànol, no el pot modificar, però marca arribades.
+\o /dev/null
+select pg_temp.com('vol');
+\o
+do $$
+declare n int;
+begin
+  assert (select count(*) from planols) = 1, 'la voluntària ha de veure el plànol';
+  assert (select count(*) from planols_historial) = 0, 'l''historial és només per a superusuaris';
+  begin
+    perform desa_planol('40000000-0000-0000-0000-000000000001', '{"v":1}', 3);
+    raise exception 'una usuària no hauria de poder desar el plànol';
+  exception when insufficient_privilege then null;
+  end;
+  update planols set nom = 'x' where id = '40000000-0000-0000-0000-000000000001';
+  get diagnostics n = row_count;
+  assert n = 0, 'una usuària no hauria de poder reanomenar el plànol';
+  begin
+    insert into planols (esdeveniment_id, nom, creat_per)
+    values ('10000000-0000-0000-0000-000000000001', 'meu', '00000000-0000-0000-0000-00000000000c');
+    raise exception 'una usuària no hauria de poder crear plànols';
+  exception when insufficient_privilege then null;
+  end;
+  -- Com ho fa l'app: per la RPC (marcar i desmarcar la mateixa persona).
+  assert marca_arribades('40000000-0000-0000-0000-000000000001', array['p1', 'p2'], true) = 2;
+  assert marca_arribades('40000000-0000-0000-0000-000000000001', array['p1'], false) = 1;
+  assert (select marcat_per from arribades where persona = 'p1') = '00000000-0000-0000-0000-00000000000c';
+  assert (select arribat from arribades where persona = 'p1') = false;
+  -- No pot marcar en nom d'una altra persona.
+  begin
+    insert into arribades (planol_id, persona, arribat, marcat_per)
+    values ('40000000-0000-0000-0000-000000000001', 'p9', true, '00000000-0000-0000-0000-00000000000b');
+    raise exception 'no hauria de poder marcar en nom d''algú altre';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    delete from arribades;
+    raise exception 'delete d''arribades hauria de fallar';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+
+-- Algú de fora no veu ni plànols ni arribades.
+\o /dev/null
+select pg_temp.com('aliena');
+\o
+do $$ begin
+  assert (select count(*) from planols) = 0;
+  assert (select count(*) from arribades) = 0;
+  begin
+    perform marca_arribades('40000000-0000-0000-0000-000000000001', array['p3'], true);
+    raise exception 'aliena no hauria de poder marcar arribades';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+
 -- anon no veu res.
 reset role;
 set role anon;

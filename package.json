@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test:sql": "scripts/prova-sql.sh",
-    "test:i18n": "node --experimental-strip-types scripts/prova-i18n.mts"
+    "test:i18n": "node --experimental-strip-types scripts/prova-i18n.mts",
+    "test:seating": "node --experimental-strip-types scripts/prova-seating.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

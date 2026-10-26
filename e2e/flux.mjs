@@ -2,45 +2,10 @@
 // l'entorn de scripts/e2e/entorn.sh i l'app a http://127.0.0.1:3000.
 //   E2E_DIR: on hi ha correus.txt (el servidor SMTP de joguina)
 //   E2E_CAPTURES: si hi és, hi desa captures de pantalla
-import fs from "node:fs";
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 
-const URL = process.env.E2E_URL ?? "http://127.0.0.1:3000";
-const DIR = process.env.E2E_DIR ?? "/tmp/acts-e2e";
-const CAPTURES = process.env.E2E_CAPTURES;
-if (CAPTURES) fs.mkdirSync(CAPTURES, { recursive: true });
-
-// Darrer codi enviat a una adreça.
-function codi(email) {
-  const blocs = fs.readFileSync(`${DIR}/correus.txt`, "utf8").split("=====FI=====");
-  for (const b of blocs.reverse()) {
-    if (!new RegExp(`^To: .*${email}`, "mi").test(b)) continue;
-    const m = b.replace(/=\r?\n/g, "").match(/code: (\d{6})/);
-    if (m) return m[1];
-  }
-  throw new Error(`cap codi per a ${email}`);
-}
-
-async function captura(page, nom) {
-  if (CAPTURES) await page.screenshot({ path: `${CAPTURES}/${nom}.png`, fullPage: true });
-}
-
-async function entra(navegador, email, { mobil = false } = {}) {
-  const ctx = await navegador.newContext({
-    locale: "ca-ES",
-    viewport: mobil ? { width: 390, height: 844 } : { width: 1280, height: 860 },
-  });
-  const page = await ctx.newPage();
-  await page.goto(`${URL}/login`);
-  await page.getByLabel("Correu electrònic").fill(email);
-  await page.getByRole("button", { name: "Envia'm un codi" }).click();
-  await page.getByLabel("Codi del correu").waitFor();
-  await page.getByLabel("Codi del correu").fill(codi(email));
-  await page.getByRole("button", { name: "Entra", exact: true }).click();
-  await page.waitForURL(`${URL}/`);
-  return page;
-}
+import { URL, captura, entra } from "./comu.mjs";
 
 const navegador = await chromium.launch();
 try {
