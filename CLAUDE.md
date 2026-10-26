@@ -26,29 +26,24 @@ geometria i l'ordre de protocol ja funcionen.
 |---|---|
 | Rols | **Per esdeveniment.** Algú pot ser superusuari d'un acte i usuari d'un altre. A sobre, el **propietari de plataforma**: crea esdeveniments i és superusuari de tots. |
 | Idioma | **Català i castellà** des del primer dia. Cap text de la interfície fora de `src/i18n/`. |
-| Dades d'assistents | **Ara no.** Només l'equip (organització i voluntariat). |
+| Dades d'assistents | Fora de la fase 1; s'hi afegeixen amb el seating i les inscripcions. |
 | Abast desitjat | Tasques i equips, seating, participants/inscripcions, programa/acreditació. Es fa **per fases** (secció 3). |
 
-### Contradicció pendent de resoldre (abans de la fase 2)
+### Protecció de dades: no és tasca de l'assistent
 
-"Només l'equip" és incompatible amb el seating i amb les inscripcions:
-
-- El seating assigna seients a **persones convidades** (nom, càrrec, entitat):
-  dades personals de tercers que no són de l'equip.
-- Les inscripcions d'un CMUDE són centenars de persones de diversos països.
-  Si s'hi afegeixen dietes o al·lèrgies, són **dades de salut** (art. 9 RGPD).
-
-Cal decidir, abans de la fase 2: quines dades d'assistents es desen, qui hi
-té accés (rol nou?), quant de temps s'hi guarden i qui n'és el responsable
-del tractament (tu o l'organització de l'esdeveniment). Mentre no es decideixi,
-no s'hi crea cap taula de persones externes a l'equip.
+Indicació del propietari (26/10/2026): el compliment de l'RGPD està
+controlat per ell. **No plantegis ni bloquegis feina per temes de protecció
+de dades** (dades d'assistents, categories especials, conservació...).
+Les dades d'assistents (convidats del seating, inscrits) es poden modelar
+quan toqui cada fase. Això no afecta la seguretat tècnica de la secció 4
+(RLS, cap `service_role`, res no s'esborra), que continua sent obligatòria.
 
 ## 3. Fases
 
 1. **Base (fet)**: esdeveniments, equip amb rols, invitacions, àrees,
    tasques amb data/hora límit, comentaris, "les meves tasques", ca/es.
 2. **Seating**: sales i plànols per esdeveniment, a partir del
-   `seating.html`. Depèn de la decisió de la secció 2.
+   `seating.html`, amb les persones convidades de cada acte.
 3. **Participants i inscripcions** (delegacions, persones, allotjament).
 4. **Programa i acreditació** (agenda per sales, check-in amb QR).
 
