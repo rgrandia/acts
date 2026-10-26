@@ -1,0 +1,99 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - name: Català i castellà tenen les mateixes claus
+        run: npm run test:i18n
+      - run: npm run build
+        env:
+          ACTS_SUPABASE_URL: http://127.0.0.1:54321
+          ACTS_SUPABASE_ANON_KEY: ci
+
+  sql:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Migracions + verificació de permisos (RLS, rols, invitacions)
+        run: scripts/prova-sql.sh
+
+  # Punta a punta amb navegador contra un Supabase mínim (Postgres + GoTrue +
+  # PostgREST + SMTP de joguina, sense Docker): scripts/e2e/entorn.sh.
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      E2E_DB_HOST: 127.0.0.1
+      E2E_DIR: /tmp/acts-e2e
+      E2E_CAPTURES: /tmp/acts-e2e/captures
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            e2e/package-lock.json
+      - run: npm ci
+      - run: npm ci
+        working-directory: e2e
+      - name: Navegador
+        run: npx playwright install --with-deps chromium
+        working-directory: e2e
+      - name: Supabase mínim
+        run: scripts/e2e/entorn.sh
+      - name: Compila i arrenca l'app
+        run: |
+          export ACTS_SUPABASE_URL=http://127.0.0.1:54321
+          export ACTS_SUPABASE_ANON_KEY=$(cat "$E2E_DIR/anon.key")
+          npm run build
+          nohup npx next start -H 127.0.0.1 -p 3000 > "$E2E_DIR/next.log" 2>&1 < /dev/null &
+          for _ in $(seq 1 60); do curl -s -o /dev/null http://127.0.0.1:3000/login && exit 0; sleep 1; done
+          echo "l'app no arrenca" >&2; exit 1
+      - name: Flux bàsic (propietària, invitació, tasca, idioma)
+        run: node flux.mjs
+        working-directory: e2e
+      - name: Captures i registres
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-captures
+          path: |
+            /tmp/acts-e2e/captures
+            /tmp/acts-e2e/*.log
+          retention-days: 7

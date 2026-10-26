@@ -1,0 +1,43 @@
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
+import { RUTES_PUBLIQUES } from "./config";
+import { supabaseClau, supabaseUrl } from "@/lib/supabase/config";
+
+// Refresca la sessió de Supabase a cada petició i envia a /login qui no
+// n'hagi iniciat. No decideix què pot veure ningú: això ho fa l'RLS.
+export async function actualitzaSessio(request: NextRequest) {
+  let response = NextResponse.next({ request });
+
+  const supabase = createServerClient(
+    supabaseUrl(),
+    supabaseClau(),
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          response = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options),
+          );
+        },
+      },
+    },
+  );
+
+  const { data } = await supabase.auth.getClaims();
+  const autenticat = Boolean(data?.claims?.sub);
+  const ruta = request.nextUrl.pathname;
+  const publica = RUTES_PUBLIQUES.some((r) => ruta === r || ruta.startsWith(r + "/"));
+
+  if (!autenticat && !publica) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
+  return response;
+}
